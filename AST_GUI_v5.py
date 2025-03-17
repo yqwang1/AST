@@ -1,7 +1,7 @@
 # Created by: yeqing wang
-# Date: 2025-03-08 17:33:49 
-# Description: AST_GUI_v5 in progress: new feature needed: another window display at the same time
-# to show all the previous info; better organize well
+# Date: 2025-03-08 17:33:49
+# update: 2025-03-17 23:34:00
+# Description: AST_GUI_v5 for another window display at the same time showing all the past trials information.
 
 import pandas as pd
 import tkinter as tk
@@ -23,15 +23,47 @@ class TrialViewer:
         if self.history_window is None or not self.history_window.winfo_exists():
             self.history_window = tk.Toplevel()
             self.history_window.title("Past Trials")
-            self.history_text = tk.Text(self.history_window, height=20, width=60, state=tk.DISABLED)
+            self.history_text = tk.Text(self.history_window, height=20, width=200, state=tk.DISABLED)
             self.history_text.pack(padx=10, pady=10)
 
         self.history_text.config(state=tk.NORMAL)
         self.history_text.delete(1.0, tk.END)
-        past_trials = self.df.loc[:self.current_trial_index, ['#', '+ / X', 'Notes']]
-        history_str = past_trials.to_string(index=False)
+
+        # Select relevant columns
+        past_trials = self.df.loc[:self.current_trial_index,
+                      ['#', 'side_rwd', 'left_stim', 'right_stim', '+ / X', 'Notes']]
+
+        # Define fixed column widths for proper alignment
+        col_widths = {'#': 10, 'side_rwd': 10, 'left_stim': 20, 'right_stim': 20, '+ / X': 10, 'Notes':100 }
+
+        # Convert DataFrame to a formatted string with left-aligned columns
+        formatted_rows = []
+
+        # Create header row with aligned column names
+        header = "".join(f"{col:<{col_widths[col]}}" for col in past_trials.columns)
+        formatted_rows.append(header)
+        formatted_rows.append("-" * len(header))  # Add separator line
+
+        # Format each row with left-aligned content
+        for _, row in past_trials.iterrows():
+            formatted_row = "".join(f"{str(row[col]):<{col_widths[col]}}" for col in past_trials.columns)
+            formatted_rows.append(formatted_row)
+
+        # Join rows into a single formatted string
+        history_str = "\n".join(formatted_rows)
+
+        # Insert into text widget
         self.history_text.insert(tk.END, history_str)
         self.history_text.config(state=tk.DISABLED)
+
+
+        '''
+        past_trials = self.df.loc[:self.current_trial_index, ['#', 'side_rwd', 'left_stim', 'right_stim', '+ / X', 'Notes']]
+        history_str = past_trials.to_string(index=False)    # Convert DataFrame to formatted string for better alignment
+        self.history_text.insert(tk.END, history_str)
+        self.history_text.config(state=tk.DISABLED)       
+        '''
+
 
     def show_trial(self, trial_index):
         self.current_trial_index = trial_index  # Track current trial index
@@ -87,7 +119,7 @@ class TrialViewer:
 
         self.update_history_window()
 
-        window.mainloop()
+        window.wait_window(window)  # Wait for this trial window to close before continuing
 
     def run_trials(self):
         num_trials = len(self.df)
